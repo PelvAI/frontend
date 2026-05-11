@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vela - Perfil</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Outfit:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .settings-section {
+            margin-top: 24px;
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+
+        .settings-item:first-child {
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+        }
+
+        .settings-item:last-child {
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            border-bottom: none;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--primary-color);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(16px);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" style="padding-bottom: 100px;">
+        <div class="mb-4">
+            <h2 data-i18n="profile.title">Perfil</h2>
+        </div>
+
+        <!-- Profile Header -->
+        <div class="card text-center">
+            <div style="
+                width: 80px; 
+                height: 80px; 
+                border-radius: 50%; 
+                background: linear-gradient(135deg, #F4ACB7 0%, #FFE5D9 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 16px;
+                font-size: 32px;
+                color: white;
+                font-weight: bold;
+            " id="avatarInitial">
+                U
+            </div>
+            <h3 id="profileName">Cargando...</h3>
+            <p class="text-small" id="profileEmail">...</p>
+            <button class="btn btn-secondary mt-4" onclick="toggleEditMode()" data-i18n="profile.edit_bio">Editar Datos
+                Biométricos</button>
+        </div>
+
+        <!-- Biometrics Edit Form (Hidden by default) -->
+        <div id="biometricsForm" class="card mt-4" style="display: none;">
+            <h3 data-i18n="profile.biometrics">Datos Biométricos</h3>
+            <form id="profileForm" class="mt-4">
+                <div class="mb-4">
+                    <label class="text-small" data-i18n="profile.weight">Peso (kg)</label>
+                    <input type="number" id="weight" step="0.1">
+                </div>
+                <div class="mb-4">
+                    <label class="text-small" data-i18n="profile.height">Altura (cm)</label>
+                    <input type="number" id="height" step="0.1">
+                </div>
+                <div class="mb-4">
+                    <label class="text-small" data-i18n="profile.birth_date">Fecha de Nacimiento</label>
+                    <input type="date" id="birthDate">
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+                <h4 class="mb-4" data-i18n="profile.clinical_data">Datos Clínicos</h4>
+
+                <div class="mb-4">
+                    <label class="text-small" data-i18n="profile.last_period">Fecha Última Regla</label>
+                    <input type="date" id="lastPeriod">
+                </div>
+                <div class="mb-4">
+                    <label class="text-small" data-i18n="profile.due_date">Fecha Probable de Parto</label>
+                    <input type="date" id="dueDate">
+                </div>
+                <div class="mb-4">
+                    <label class="text-small" data-i18n="profile.delivery_date">Fecha de Parto</label>
+                    <input type="date" id="deliveryDate">
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full" data-i18n="profile.save_btn">Guardar
+                    Cambios</button>
+            </form>
+        </div>
+
+        <!-- Settings Sections -->
+        <div class="settings-section">
+            <h4 class="mb-4" style="padding-left: 8px;" data-i18n="profile.settings">Configuración</h4>
+
+            <div class="settings-item">
+                <span data-i18n="profile.language">Idioma</span>
+                <select id="languageSelect" onchange="saveSettings()"
+                    style="border: none; background: transparent; font-family: inherit; color: var(--primary-color);">
+                    <option value="es">Español</option>
+                    <option value="en">English</option>
+                    <option value="pt">Português</option>
+                </select>
+            </div>
+
+            <div class="settings-item">
+                <span data-i18n="profile.notifications">Notificaciones</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="notificationsToggle" onchange="saveSettings()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="settings-item">
+                <span data-i18n="profile.dark_mode">Modo Oscuro</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="darkModeToggle" onchange="saveSettings()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h4 class="mb-4" style="padding-left: 8px;" data-i18n="profile.support">Soporte</h4>
+
+            <div class="settings-item" onclick="alert('Abriendo términos y condiciones...')">
+                <span data-i18n="profile.terms">Términos y Condiciones</span>
+                <span>›</span>
+            </div>
+
+            <div class="settings-item" onclick="alert('Abriendo política de privacidad...')">
+                <span data-i18n="profile.privacy">Política de Privacidad</span>
+                <span>›</span>
+            </div>
+
+            <div class="settings-item" onclick="alert('Contactando soporte...')">
+                <span data-i18n="profile.help">Ayuda y Soporte</span>
+                <span>›</span>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <button class="btn btn-full" style="background-color: #FFE5D9; color: #D6336C;" onclick="api.logout()"
+                data-i18n="profile.logout">
+                Cerrar Sesión
+            </button>
+            <p class="text-center text-small mt-4" style="opacity: 0.5;" data-i18n="profile.version">Versión 1.0.2
+                (Beta)</p>
+        </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+        <button class="tab-btn" onclick="window.location.href='dashboard.html'">
+            <span class="tab-icon">🏠</span>
+            <span class="text-small" data-i18n="menu.home">Inicio</span>
+        </button>
+        <button class="tab-btn" onclick="window.location.href='progress.html'">
+            <span class="tab-icon">📊</span>
+            <span class="text-small" data-i18n="menu.progress">Progreso</span>
+        </button>
+        <button class="tab-btn" onclick="window.location.href='explore.html'">
+            <span class="tab-icon">📚</span>
+            <span class="text-small" data-i18n="menu.explore">Explorar</span>
+        </button>
+        <button class="tab-btn active" onclick="window.location.href='profile.html'">
+            <span class="tab-icon">👤</span>
+            <span class="text-small" data-i18n="menu.profile">Perfil</span>
+        </button>
+    </div>
+
+    <script src="js/translations.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        function toggleEditMode() {
+            const form = document.getElementById('biometricsForm');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function loadProfile() {
+            // Initialize global settings
+            api.initApp();
+
+            try {
+                const profile = await api.getProfile();
+                document.getElementById('profileName').textContent = profile.nickname || 'Usuario';
+
+                const storedUser = JSON.parse(localStorage.getItem('vela_user') || '{}');
+                document.getElementById('profileEmail').textContent = storedUser.email || 'email@example.com';
+
+                if (profile.nickname) {
+                    document.getElementById('avatarInitial').textContent = profile.nickname[0].toUpperCase();
+                }
+
+                // Populate form
+                if (profile.weight) document.getElementById('weight').value = profile.weight;
+                if (profile.height) document.getElementById('height').value = profile.height;
+                if (profile.birth_date) {
+                    document.getElementById('birthDate').value = profile.birth_date.split('T')[0];
+                }
+                if (profile.last_period_date) {
+                    document.getElementById('lastPeriod').value = profile.last_period_date.split('T')[0];
+                }
+                if (profile.due_date) {
+                    document.getElementById('dueDate').value = profile.due_date.split('T')[0];
+                }
+                if (profile.delivery_date) {
+                    document.getElementById('deliveryDate').value = profile.delivery_date.split('T')[0];
+                }
+
+                // Populate Settings
+                if (profile.preferred_language) document.getElementById('languageSelect').value = profile.preferred_language;
+                document.getElementById('notificationsToggle').checked = profile.notifications_enabled !== false; // Default true
+                document.getElementById('darkModeToggle').checked = profile.dark_mode === true;
+
+            } catch (error) {
+                console.error('Error loading profile:', error);
+            }
+        }
+
+        async function saveSettings() {
+            const preferred_language = document.getElementById('languageSelect').value;
+            const notifications_enabled = document.getElementById('notificationsToggle').checked;
+            const dark_mode = document.getElementById('darkModeToggle').checked;
+
+            try {
+                // api.updateProfile now handles localStorage update and theme application
+                await api.updateProfile({
+                    preferred_language,
+                    notifications_enabled,
+                    dark_mode
+                });
+                console.log('Settings saved');
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                alert('Error al guardar configuración');
+            }
+        }
+
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const weight = parseFloat(document.getElementById('weight').value);
+            const height = parseFloat(document.getElementById('height').value);
+            const birthDate = document.getElementById('birthDate').value;
+
+            try {
+                await api.updateProfile({
+                    weight: weight || null,
+                    height: height || null,
+                    birth_date: document.getElementById('birthDate').value || null,
+                    last_period_date: document.getElementById('lastPeriod').value || null,
+                    due_date: document.getElementById('dueDate').value || null,
+                    delivery_date: document.getElementById('deliveryDate').value || null
+                });
+                alert('Perfil actualizado correctamente');
+                toggleEditMode();
+            } catch (error) {
+                alert('Error al actualizar perfil');
+                console.error(error);
+            }
+        });
+
+        loadProfile();
+    </script>
+</body>
+
+</html>

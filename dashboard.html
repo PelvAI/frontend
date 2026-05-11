@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vela - Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Outfit:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body class="glow-bg">
+    <div class="container" style="padding-bottom: 120px; position: relative;">
+        <div class="reveal mb-4">
+            <div class="label">DASHBOARD / 01</div>
+            <h2><span data-i18n="dash.welcome">Hola</span>, <span id="userName">...</span> 👋</h2>
+            <p class="text-small" data-i18n="dash.streak_msg">Acompañando tu progreso científico.</p>
+        </div>
+
+        <div class="reveal card clickable" style="transition-delay: 0.1s;" onclick="window.location.href='exercise.html'">
+            <div class="ghost-text">DR</div>
+            <h3 data-i18n="dash.session_title">Tu Sesión de Hoy: Fortalecimiento</h3>
+            <div class="mt-4">
+                <button class="btn btn-primary btn-full" data-i18n="dash.start_btn">Comenzar (5 min)</button>
+            </div>
+        </div>
+
+        <div class="reveal flex-grid mb-4" style="transition-delay: 0.2s;">
+            <div class="card text-center clickable" onclick="window.location.href='evaluations.html'">
+                <div style="font-size: 32px; margin-bottom: 8px;">📋</div>
+                <p class="label" style="justify-content: center; margin-bottom: 0;">EVALS</p>
+            </div>
+
+            <div class="card text-center clickable" onclick="window.location.href='chat.html'">
+                <div style="font-size: 32px; margin-bottom: 8px;">💬</div>
+                <p class="label" style="justify-content: center; margin-bottom: 0;">COACH</p>
+            </div>
+
+            <div class="card text-center clickable" onclick="window.location.href='shop.html'">
+                <div style="font-size: 32px; margin-bottom: 8px;">💎</div>
+                <h3 id="xpCount" style="margin-bottom: 0;">0</h3>
+                <p class="label" style="justify-content: center; margin-bottom: 0;">XP</p>
+            </div>
+        </div>
+
+        <div class="reveal card" style="transition-delay: 0.3s;">
+            <div class="label">MISIÓN / TODAY</div>
+            <h3 data-i18n="dash.mission_title">🎯 Misión Diaria</h3>
+            <p class="mt-4" style="color: var(--slate);" data-i18n="dash.mission_text">Evidencia: Completa 3 series de ejercicios de coordinación</p>
+        </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="window.location.href='dashboard.html'">
+            <div class="tab-icon">🏠</div>
+            <div class="tab-label" data-i18n="menu.home">Inicio</div>
+        </button>
+        <button class="tab-btn" onclick="window.location.href='progress.html'">
+            <div class="tab-icon">📊</div>
+            <div class="tab-label" data-i18n="menu.progress">Progreso</div>
+        </button>
+        <button class="tab-btn" onclick="window.location.href='explore.html'">
+            <div class="tab-icon">📚</div>
+            <div class="tab-label" data-i18n="menu.explore">Explorar</div>
+        </button>
+        <button class="tab-btn" onclick="window.location.href='profile.html'">
+            <div class="tab-icon">👤</div>
+            <div class="tab-label" data-i18n="menu.profile">Perfil</div>
+        </button>
+    </div>
+
+    <script src="js/translations.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        async function loadDashboard() {
+            // Initialize global settings
+            api.initApp();
+
+            // Reveal animation observer
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(e => {
+                    if (e.isIntersecting) {
+                        e.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+            try {
+                // Load Profile
+                const profile = await api.getProfile();
+                document.getElementById('userName').textContent = profile.nickname || 'Usuario';
+
+                const walletData = await api.getWallet();
+                let xp = 0;
+                if (walletData && walletData.balances && walletData.balances.XP) {
+                    xp = walletData.balances.XP;
+                } else if (walletData && walletData.XP) {
+                    xp = walletData.XP;
+                }
+                document.getElementById('xpCount').textContent = xp;
+
+                const stats = await api.getGamificationStats();
+                if (stats && stats.streak > 0) {
+                    const streakMsg = `RACHA / ${stats.streak} DÍAS 🔥`;
+                    const msgEl = document.querySelector('[data-i18n="dash.streak_msg"]');
+                    if (msgEl) msgEl.textContent = streakMsg;
+                }
+                if (stats && stats.xp !== undefined) {
+                    document.getElementById('xpCount').textContent = stats.xp;
+                }
+
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        loadDashboard();
+    </script>
+</body>
+
+</html>

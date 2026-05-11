@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vela - Progreso</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Outfit:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .chart-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            height: 200px;
+            margin-top: 24px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .bar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+
+        .bar {
+            width: 40px;
+            border-radius: 8px 8px 0 0;
+            margin-bottom: 8px;
+            transition: height 0.5s ease;
+        }
+
+        .bar-wellness {
+            background: linear-gradient(180deg, #D8E2DC 0%, #FFE5D9 100%);
+        }
+
+        .bar-symptoms {
+            background: linear-gradient(180deg, #F4ACB7 0%, #FFE5D9 100%);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" style="padding-bottom: 100px;">
+        <div class="mb-4">
+            <h2 data-i18n="progress.title">Tu Progreso</h2>
+        </div>
+
+        <div class="card text-center">
+            <div style="
+                width: 150px; 
+                height: 150px; 
+                margin: 0 auto 16px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #F4ACB7 0%, #FFE5D9 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+            ">
+                <h1 style="color: white; margin: 0;" id="currentWellness">--</h1>
+                <span class="text-small" style="color: white;">/ 100</span>
+            </div>
+            <h3 data-i18n="progress.wellness_index">Índice de Bienestar Pélvico</h3>
+            <p class="mt-4 text-small" data-i18n="progress.last_eval">Basado en tu última evaluación</p>
+        </div>
+
+        <div class="card">
+            <h3 data-i18n="progress.symptoms_evolution">Evolución de Síntomas (PFDI-20)</h3>
+            <p class="text-small" data-i18n="progress.lower_better">Menor es mejor</p>
+            <div id="pfdiChart" class="chart-container">
+                <p class="text-small" data-i18n="progress.loading">Cargando datos...</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 data-i18n="progress.wellness_index_title">Índice de Bienestar</h3>
+            <p class="text-small" data-i18n="progress.higher_better">Mayor es mejor</p>
+            <div id="wellnessChart" class="chart-container">
+                <p class="text-small" data-i18n="progress.loading">Cargando datos...</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 data-i18n="progress.achievements">Logros Desbloqueados</h3>
+            <div class="flex-grid mt-4" style="grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));">
+                <p class="text-small text-center" style="width: 100%;" data-i18n="progress.loading">Cargando logros...
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+        <button class="tab-btn" onclick="window.location.href='dashboard.html'">
+            <span class="tab-icon">🏠</span>
+            <span class="text-small" data-i18n="menu.home">Inicio</span>
+        </button>
+        <button class="tab-btn active" onclick="window.location.href='progress.html'">
+            <span class="tab-icon">📊</span>
+            <span class="text-small" data-i18n="menu.progress">Progreso</span>
+        </button>
+        <button class="tab-btn" onclick="window.location.href='explore.html'">
+            <span class="tab-icon">📚</span>
+            <span class="text-small" data-i18n="menu.explore">Explorar</span>
+        </button>
+        <button class="tab-btn" onclick="window.location.href='profile.html'">
+            <span class="tab-icon">👤</span>
+            <span class="text-small" data-i18n="menu.profile">Perfil</span>
+        </button>
+    </div>
+
+    <script src="js/translations.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        async function loadProgress() {
+            // Initialize global settings
+            api.initApp();
+
+            try {
+                // Load Gamification Stats
+                const stats = await api.getGamificationStats();
+
+                // Update Achievements Grid
+                const achievementsGrid = document.querySelector('.flex-grid');
+                achievementsGrid.innerHTML = `
+                    <div style="padding: 12px; background: #FFEAEE; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 32px;">🏅</div>
+                        <p class="text-small">Semana ${stats.program_week}</p>
+                    </div>
+                    <div style="padding: 12px; background: #FFEAEE; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 32px;">🔥</div>
+                        <p class="text-small">Racha ${stats.streak}</p>
+                    </div>
+                    <div style="padding: 12px; background: #FFEAEE; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 32px;">⭐</div>
+                        <p class="text-small">Nivel ${stats.level}</p>
+                    </div>
+                `;
+
+                const history = await api.getSnapshotHistory();
+
+                if (history.length > 0) {
+                    const latest = history[history.length - 1];
+                    const wellness = latest.data.wellness || 0;
+                    document.getElementById('currentWellness').textContent = wellness;
+
+                    renderChart('pfdiChart', history, 'pfdi20', 1.5, 'bar-symptoms');
+                    renderChart('wellnessChart', history, 'wellness', 2, 'bar-wellness');
+                } else {
+                    document.getElementById('pfdiChart').innerHTML = '<p class="text-small">No hay datos suficientes.</p>';
+                    document.getElementById('wellnessChart').innerHTML = '<p class="text-small">No hay datos suficientes.</p>';
+                }
+
+            } catch (error) {
+                console.error('Error loading progress:', error);
+            }
+        }
+
+        function renderChart(containerId, data, key, scale, barClass) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            data.forEach(snap => {
+                const value = snap.data[key] || 0;
+                const date = new Date(snap.last_updated).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+                const group = document.createElement('div');
+                group.className = 'bar-group';
+
+                group.innerHTML = `
+                    <div class="bar ${barClass}" style="height: ${value * scale}px;"></div>
+                    <span class="text-small">${date}</span>
+                `;
+                container.appendChild(group);
+            });
+        }
+
+        loadProgress();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vela - AI Coach</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Outfit:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background-color: #F8F9FA;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 80px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background-color: var(--primary-color);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai {
+            align-self: flex-start;
+            background-color: white;
+            color: var(--text-color);
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .input-area {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 16px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            gap: 12px;
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            outline: none;
+        }
+
+        .send-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="mb-4 flex-center" style="padding: 16px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <button class="btn-icon" onclick="window.location.href='dashboard.html'">←</button>
+        <h3 style="margin-left: 16px;">Vela Coach</h3>
+    </div>
+
+    <div class="chat-container" id="chatContainer">
+        <div class="message ai">
+            Hola, soy tu asistente virtual de Vela. ¿En qué puedo ayudarte hoy?
+        </div>
+    </div>
+
+    <div class="input-area">
+        <input type="text" id="messageInput" placeholder="Escribe tu duda...">
+        <button class="send-btn" onclick="sendMessage()">➤</button>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        let conversationId = 'new'; // In real app, get from backend
+
+        async function initChat() {
+            try {
+                const res = await api.startChat();
+                conversationId = res.conversation_id;
+            } catch (error) {
+                console.error('Error starting chat:', error);
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            // Add user message
+            addMessage(text, 'user');
+            input.value = '';
+
+            // Show loading placeholder
+            const loadingId = addMessage('...', 'ai');
+
+            try {
+                const response = await api.sendMessage(conversationId, text);
+
+                // Remove loading and add real response
+                document.getElementById(loadingId).remove();
+
+                // Simulate typing effect
+                typeMessage(response.response, 'ai');
+
+            } catch (error) {
+                console.error('Error sending message:', error);
+                document.getElementById(loadingId).textContent = 'Error al conectar con el asistente.';
+            }
+        }
+
+        function addMessage(text, type) {
+            const container = document.getElementById('chatContainer');
+            const msg = document.createElement('div');
+            msg.className = `message ${type}`;
+            msg.textContent = text;
+            msg.id = 'msg-' + Date.now();
+            container.appendChild(msg);
+            container.scrollTop = container.scrollHeight;
+            return msg.id;
+        }
+
+        function typeMessage(text, type) {
+            const container = document.getElementById('chatContainer');
+            const msg = document.createElement('div');
+            msg.className = `message ${type}`;
+            container.appendChild(msg);
+
+            let i = 0;
+            const speed = 20; // ms per char
+
+            function type() {
+                if (i < text.length) {
+                    msg.textContent += text.charAt(i);
+                    i++;
+                    container.scrollTop = container.scrollHeight;
+                    setTimeout(type, speed);
+                }
+            }
+            type();
+        }
+
+        initChat();
+
+        // Enter key support
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+
+</html>

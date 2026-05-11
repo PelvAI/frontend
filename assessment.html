@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vela - Evaluación</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Outfit:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .question-card {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .option-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: white;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .option-btn.selected {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .range-container {
+            padding: 20px 0;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--primary-color);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" style="padding-bottom: 100px;">
+        <div class="mb-4 flex-center" style="justify-content: space-between;">
+            <button class="btn-icon" onclick="history.back()">←</button>
+            <h2>Evaluación</h2>
+            <div style="width: 24px;"></div>
+        </div>
+
+        <div id="loading" class="text-center">
+            <p>Cargando evaluación...</p>
+        </div>
+
+        <div id="formContainer" style="display: none;">
+            <div id="questionsList"></div>
+            <button class="btn btn-primary btn-full mt-4" onclick="submitForm()">Finalizar Evaluación</button>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        let currentFormId = null;
+        let currentSubmissionId = null;
+        let answers = {};
+
+        async function loadForm() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const formCode = urlParams.get('code');
+
+                if (!formCode) {
+                    alert('Código de formulario no especificado');
+                    window.location.href = 'evaluations.html';
+                    return;
+                }
+
+                const form = await api.getFormSchema(formCode);
+
+                if (!form) {
+                    alert('Formulario no encontrado');
+                    return;
+                }
+
+                // Start submission
+                const sub = await api.startSubmission(form.form_id);
+                currentSubmissionId = sub.submission_id;
+
+                renderForm(form);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('formContainer').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error loading form:', error);
+                document.getElementById('loading').innerHTML = '<p>Error al cargar el formulario.</p>';
+            }
+        }
+
+        // --- Renderer Registry Pattern ---
+        const renderers = {
+            'single': renderSingleChoice,
+            'multi': renderMultiChoice, // Future use
+            'scale': renderScale,
+            'text': renderText,         // Future use
+            'info': renderInfo          // Future use
+        };
+
+        function renderForm(form) {
+            const container = document.getElementById('questionsList');
+            container.innerHTML = '';
+
+            // Handle Sections
+            if (form.sections && form.sections.length > 0) {
+                form.sections.forEach(section => {
+                    // Logic to detect if section has title (some might be implicit)
+                    renderSectionTitle(container, section);
+                    section.questions.forEach(q => renderQuestion(container, q));
+                });
+            } else {
+                // Fallback for flat forms (though our schema has sections)
+                container.innerHTML = '<p>Formulario sin secciones definidas.</p>';
+            }
+        }
+
+        function renderSectionTitle(container, section) {
+            const title = document.createElement('h3');
+            title.textContent = section.title_key || 'Sección';
+            title.className = 'mb-4 mt-4';
+            container.appendChild(title);
+        }
+
+        function renderQuestion(container, q) {
+            const card = document.createElement('div');
+            card.className = 'question-card';
+
+            // 1. Label
+            // Use translations if available, otherwise fallback to key
+            const lang = localStorage.getItem('vela_lang') || 'es';
+            const t = (window.translations && translations[lang]) || {};
+            label.textContent = t[q.text_key] || q.text_key || q.variable_name || 'Pregunta';
+            // Note: In real app, resolved text should be fetched from translations based on text_key
+
+            // If we have "ui_hint", show it
+            if (q.ui_hint) {
+                const hint = document.createElement('small');
+                hint.className = 'd-block text-muted mb-2';
+                hint.textContent = q.ui_hint;
+                card.appendChild(hint);
+            }
+
+            card.appendChild(label);
+
+            // 2. Dispatch to Renderer
+            const renderer = renderers[q.type];
+            if (renderer) {
+                renderer(card, q);
+            } else {
+                console.warn(`Unsupported question type: ${q.type}`);
+                card.innerHTML += `<p class="text-error">Tipo de pregunta no soportado: ${q.type}</p>`;
+            }
+
+            container.appendChild(card);
+        }
+
+        // --- Specific Renderers ---
+
+        function renderSingleChoice(container, q) {
+            if (!q.options || q.options.length === 0) {
+                container.innerHTML += '<p>No hay opciones definidas.</p>';
+                return;
+            }
+
+            q.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                // Display: Label Key or Value
+                btn.textContent = opt.label_key || opt.value;
+                // Store value for logic
+                btn.dataset.value = opt.value;
+                btn.dataset.questionId = q.question_id;
+
+                btn.onclick = () => selectOption(btn, q.question_id, opt.value);
+                container.appendChild(btn);
+            });
+        }
+
+        function renderMultiChoice(container, q) {
+            container.innerHTML += '<p>Multi-choice not implemented yet.</p>';
+        }
+
+        function renderScale(container, q) {
+            // Config usually in q.config for min/max
+            const min = q.config?.min || 0;
+            const max = q.config?.max || 10;
+            const step = q.config?.step || 1;
+
+            const range = document.createElement('div');
+            range.className = 'range-container';
+            range.innerHTML = `
+                <input type="range" min="${min}" max="${max}" step="${step}" value="${Math.floor((max + min) / 2)}" 
+                    onchange="saveAnswer('${q.question_id}', this.value)">
+                <div class="flex-center" style="justify-content: space-between; margin-top: 8px;">
+                    <span class="text-small">${min}</span>
+                    <span class="text-small">${max}</span>
+                </div>
+            `;
+            container.appendChild(range);
+        }
+
+        function renderText(container, q) {
+            // Simple text input
+            container.innerHTML += '<p>Text input not implemented in demo.</p>';
+        }
+
+        function renderInfo(container, q) {
+            // Just info, no input
+        }
+
+        // --- Interaction Logic ---
+
+        function selectOption(btn, questionId, value) {
+            // Visual selection state
+            const parent = btn.parentNode;
+            parent.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+
+            saveAnswer(questionId, value);
+        }
+
+        function saveAnswer(questionId, value) {
+            // Keep local state
+            answers[questionId] = value;
+            console.log(`Answer saved locally: ${questionId} = ${value}`);
+        }
+
+        // --- Submission Logic ---
+
+        async function submitForm() {
+            if (!currentSubmissionId) return;
+
+            // 1. Format Payload for API
+            // API expects { "answers": [ { "question_id": "...", "value": "..." } ] }
+            const payload = {
+                answers: Object.entries(answers).map(([qid, val]) => ({
+                    question_id: qid,
+                    value: val
+                }))
+            };
+
+            if (payload.answers.length === 0) {
+                alert("Por favor contesta al menos una pregunta.");
+                return;
+            }
+
+            // Show loading state
+            const submitBtn = document.querySelector('button[onclick="submitForm()"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = "Procesando...";
+            submitBtn.disabled = true;
+
+            try {
+                // 2. Send Answers (Partial Save)
+                console.log("Sending answers...", payload);
+                await api.request(`/clinical/submissions/${currentSubmissionId}/answers`, 'PUT', payload);
+
+                // 3. Finalize (Trigger Scoring)
+                console.log("Finalizing...");
+                const result = await api.finalizeSubmission(currentSubmissionId);
+
+                // 4. Handle Result (Score/Alerts)
+                console.log("Submission Result:", result);
+
+                let msg = 'Evaluación completada.';
+                if (result.total_score !== undefined && result.total_score !== null) {
+                    msg += `\n\nPuntuación Total: ${result.total_score}`;
+                }
+
+                if (result.calculated_values && result.calculated_values.iciq_total) {
+                    // Specific feedback if needed
+                }
+
+                alert(msg);
+                window.location.href = 'progress.html'; // Or dashboard
+
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                alert('Error al enviar la evaluación: ' + error.message);
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        }
+
+        loadForm();
+    </script>
+</body>
+
+</html>

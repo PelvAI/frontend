@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vela - Ejercicio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Outfit:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .exercise-flower {
+            font-size: 120px;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .contracting {
+            transform: scale(1.2);
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 12px;
+            background: var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 32px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--primary-color);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- INTRO SCREEN -->
+    <div id="introScreen" class="container flex-center" style="min-height: 100vh;">
+        <div style="width: 100%;">
+            <div class="text-center mb-4">
+                <h2>Contracciones Rápidas</h2>
+            </div>
+            <div class="card text-center">
+                <div style="font-size: 80px; margin-bottom: 24px;">🌸</div>
+                <h3>Prepárate para comenzar</h3>
+                <p class="mt-4">
+                    Realiza 10 contracciones de 3 segundos cada una.
+                    Contrae y eleva tu suelo pélvico como si estuvieras deteniendo el flujo de orina.
+                </p>
+                <div class="mt-4">
+                    <button class="btn btn-primary btn-full" onclick="startSession()">Comenzar</button>
+                </div>
+            </div>
+            <div class="mt-4 text-center">
+                <button class="btn btn-secondary" onclick="window.location.href='dashboard.html'">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACTIVE SCREEN -->
+    <div id="activeScreen" class="container flex-center hidden" style="min-height: 100vh;">
+        <div style="width: 100%;">
+            <div class="text-center mb-4">
+                <h2>Contracciones Rápidas</h2>
+                <p class="text-small">Repetición <span id="currentRep">1</span> de 10</p>
+            </div>
+
+            <div class="text-center mb-4">
+                <div id="flower" class="exercise-flower">🌼</div>
+
+                <h3 id="instruction" style="margin-top: 24px; color: var(--text-light);">
+                    Relaja completamente
+                </h3>
+            </div>
+
+            <div class="progress-bar-container">
+                <div id="progressBar" class="progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- COMPLETED SCREEN -->
+    <div id="completedScreen" class="container flex-center hidden" style="min-height: 100vh;">
+        <div style="width: 100%; text-align: center;">
+            <div style="font-size: 80px; margin-bottom: 24px;">🎉</div>
+            <h1 class="mb-4">¡Sesión Completada!</h1>
+            <div class="card">
+                <h3>+50 XP ganados</h3>
+                <p class="mt-4">¡Excelente trabajo! Tu suelo pélvico te lo agradece.</p>
+            </div>
+            <button class="btn btn-primary btn-full" onclick="finishSession()">Volver al Inicio</button>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        const TOTAL_REPS = 10;
+        const CONTRACTION_TIME = 3000; // ms
+        const RELAX_TIME = 1000; // ms
+
+        let currentRep = 0;
+        let sessionId = 'stub_session_id'; // In real app, get this from API when starting
+
+        function startSession() {
+            document.getElementById('introScreen').classList.add('hidden');
+            document.getElementById('activeScreen').classList.remove('hidden');
+            runRepetition();
+        }
+
+        function runRepetition() {
+            if (currentRep >= TOTAL_REPS) {
+                showCompleted();
+                return;
+            }
+
+            // Update UI
+            document.getElementById('currentRep').textContent = currentRep + 1;
+
+            // Contraction Phase
+            setIsContracting(true);
+            animateProgress(CONTRACTION_TIME, () => {
+                // Relax Phase
+                setIsContracting(false);
+                setTimeout(() => {
+                    currentRep++;
+                    runRepetition();
+                }, RELAX_TIME);
+            });
+        }
+
+        function setIsContracting(contracting) {
+            const flower = document.getElementById('flower');
+            const instruction = document.getElementById('instruction');
+
+            if (contracting) {
+                flower.textContent = '🌸';
+                flower.classList.add('contracting');
+                instruction.textContent = 'Contrae y eleva';
+                instruction.style.color = 'var(--primary-color)';
+            } else {
+                flower.textContent = '🌼';
+                flower.classList.remove('contracting');
+                instruction.textContent = 'Relaja completamente';
+                instruction.style.color = 'var(--text-light)';
+            }
+        }
+
+        function animateProgress(duration, callback) {
+            const bar = document.getElementById('progressBar');
+            let start = null;
+
+            function step(timestamp) {
+                if (!start) start = timestamp;
+                const progress = timestamp - start;
+                const percentage = Math.min((progress / duration) * 100, 100);
+
+                bar.style.width = percentage + '%';
+
+                if (progress < duration) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    if (callback) callback();
+                }
+            }
+
+            window.requestAnimationFrame(step);
+        }
+
+        async function showCompleted() {
+            document.getElementById('activeScreen').classList.add('hidden');
+            document.getElementById('completedScreen').classList.remove('hidden');
+
+            // Submit results to API
+            try {
+                // We use a random UUID for session ID as the endpoint expects one
+                const randomId = '123e4567-e89b-12d3-a456-426614174000';
+                await api.completeSession(randomId, {
+                    feedback_score: 5,
+                    difficulty: "medium",
+                    comments: "Frontend prototype session"
+                });
+                console.log('Session submitted successfully');
+            } catch (error) {
+                console.error('Error submitting session:', error);
+            }
+        }
+
+        function finishSession() {
+            window.location.href = 'dashboard.html';
+        }
+    </script>
+</body>
+
+</html>

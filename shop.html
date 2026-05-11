@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vela - Tienda</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Outfit:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .shop-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .shop-item {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+        }
+
+        .shop-item:active {
+            transform: scale(0.98);
+        }
+
+        .item-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        .price-tag {
+            background: #FFF3CD;
+            color: #856404;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+            margin-top: 8px;
+        }
+
+        .wallet-header {
+            background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" style="padding-bottom: 100px;">
+        <div class="mb-4 flex-center" style="justify-content: space-between;">
+            <button class="btn-icon" onclick="window.location.href='dashboard.html'">←</button>
+            <h2>Tienda</h2>
+            <div style="width: 24px;"></div>
+        </div>
+
+        <div class="wallet-header">
+            <div>
+                <p class="text-small" style="opacity: 0.8;">Tu Saldo</p>
+                <h2 style="margin: 0;" id="walletBalance">---</h2>
+            </div>
+            <div style="font-size: 32px;">💎</div>
+        </div>
+
+        <h3 class="mb-4">Catálogo</h3>
+        <div id="shopGrid" class="shop-grid">
+            <p class="text-center" style="grid-column: 1/-1;">Cargando catálogo...</p>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        async function loadShop() {
+            try {
+                // Load Wallet
+                const wallet = await api.getWallet();
+                document.getElementById('walletBalance').textContent = wallet.balance + ' XP';
+
+                // Load Catalog
+                const catalog = await api.getShopCatalog();
+                const grid = document.getElementById('shopGrid');
+                grid.innerHTML = '';
+
+                if (catalog.length === 0) {
+                    grid.innerHTML = '<p class="text-center" style="grid-column: 1/-1;">No hay items disponibles.</p>';
+                } else {
+                    catalog.forEach(item => {
+                        const card = document.createElement('div');
+                        card.className = 'shop-item';
+                        card.innerHTML = `
+                            <div class="item-icon">🎁</div>
+                            <p class="font-bold">${item.name}</p>
+                            <p class="text-small">${item.description || ''}</p>
+                            <div class="price-tag">${item.cost} XP</div>
+                        `;
+                        card.onclick = () => buyItem(item);
+                        grid.appendChild(card);
+                    });
+                }
+
+            } catch (error) {
+                console.error('Error loading shop:', error);
+            }
+        }
+
+        async function buyItem(item) {
+            if (!confirm(`¿Quieres comprar "${item.name}" por ${item.cost} XP?`)) return;
+
+            try {
+                await api.buyItem(item.item_id);
+                alert('¡Compra realizada con éxito!');
+                loadShop(); // Refresh balance
+            } catch (error) {
+                console.error('Error buying item:', error);
+                alert('No tienes suficiente saldo o hubo un error.');
+            }
+        }
+
+        loadShop();
+    </script>
+</body>
+
+</html>
