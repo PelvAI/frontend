@@ -68,7 +68,7 @@ const translations = {
 
         // Auth
         "auth.login_title": "Iniciar Sesión",
-        "auth.welcome": "Bienvenida a Vela",
+        "auth.welcome": "Bienvenida a ALMA",
         "auth.subtitle": "La ciencia que cada mujer merece",
         "auth.email_label": "Correo Electrónico",
         "auth.password_label": "Contraseña",
@@ -144,7 +144,7 @@ const translations = {
 
         // Auth
         "auth.login_title": "Login",
-        "auth.welcome": "Welcome to Vela",
+        "auth.welcome": "Welcome to ALMA",
         "auth.subtitle": "The science every woman deserves",
         "auth.email_label": "Email",
         "auth.password_label": "Password",
@@ -220,7 +220,7 @@ const translations = {
 
         // Auth
         "auth.login_title": "Entrar",
-        "auth.welcome": "Bem-vindo ao Vela",
+        "auth.welcome": "Bem-vinda à ALMA",
         "auth.subtitle": "A ciência que cada mulher merece",
         "auth.email_label": "Email",
         "auth.password_label": "Senha",

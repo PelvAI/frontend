@@ -153,6 +153,50 @@ h3, .t-title {
     overflow: hidden;
 }
 
+/* Inputs & Forms */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+select {
+    width: 100%;
+    padding: 16px 24px;
+    border-radius: 100px; /* pill styling matching buttons */
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.85);
+    color: var(--text-color);
+    font-family: var(--sans);
+    font-size: 0.95rem;
+    margin-bottom: 16px;
+    outline: none;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* Specific styling for dates and selects which need a bit more space or different radius */
+input[type="date"],
+select {
+    border-radius: 16px; /* slightly less rounded for date pickers/dropdowns to look better */
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+select:focus {
+    border-color: var(--primary-color);
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(13, 26, 62, 0.08);
+}
+
+input::placeholder {
+    color: var(--silver);
+    opacity: 0.8;
+}
+
 .clickable {
     cursor: pointer;
 }

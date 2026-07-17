@@ -1,4 +1,4 @@
-# Vela Frontend - Configuración
+# ALMA Care Frontend - Configuración
 
 Este proyecto es una aplicación estática (HTML/JS puro). 
 Para configurar la conexión con el backend:
@@ -15,5 +15,5 @@ Para cambiar la URL de la API (por ejemplo, para producción), modifica la const
 const API_URL = 'http://127.0.0.1:8001/api/v1';
 
 // Production Example
-// const API_URL = 'https://api.vela.com/api/v1';
+// const API_URL = 'https://api.sci4women.com/api/v1';
 ```

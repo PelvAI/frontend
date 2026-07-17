@@ -1,6 +1,6 @@
-# 🌸 Vela Patient Web App
+# 🌸 ALMA Care — Patient Web App
 
-Aplicación web para pacientes de **Vela**, diseñada para realizar evaluaciones clínicas, seguimiento de progreso y visualización de rutinas de entrenamiento.
+Aplicación web para pacientes de **ALMA Care** (módulo B2C de **ALMA Health Intelligence System**), diseñada para realizar evaluaciones clínicas (DOM 07 — SUELO), seguimiento de progreso y visualización de rutinas de entrenamiento.
 
 ## 🛠️ Tecnologías
 - **Core**: HTML5, Vanilla JavaScript.
@@ -21,8 +21,8 @@ Aplicación web para pacientes de **Vela**, diseñada para realizar evaluaciones
 
 3. **Acceso**:
    Usa las credenciales de prueba configuradas en el backend:
-   - **Email**: `ana@vela.com`
-   - **Password**: (Cualquiera en modo dev)
+   - **Email**: `ana@alma.com`
+   - **Password**: (Cualquiera en modo dev/prototipo)
 
 ---
 

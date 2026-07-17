@@ -1,7 +1,7 @@
 const API_URL = 'http://127.0.0.1:8001/api/v1';
 
 const api = {
-    getToken: () => localStorage.getItem('vela_token'),
+    getToken: () => localStorage.getItem('alma_token'),
 
     // Helper to get headers with auth token
     getHeaders: () => {
@@ -32,7 +32,7 @@ const api = {
 
             if (response.status === 401) {
                 // Unauthorized - clear token and redirect to login
-                localStorage.removeItem('vela_token');
+                localStorage.removeItem('alma_token');
                 window.location.href = 'index.html';
                 return null;
             }
@@ -58,7 +58,7 @@ const api = {
         // or generate one.
 
         let uid = 'test_uid_123'; // Default test user
-        if (email !== 'test@vela.com') {
+        if (email !== 'test@alma.com') {
             // Simple hash for other emails to get consistent UIDs
             uid = 'uid_' + btoa(email).substring(0, 10);
         }
@@ -70,15 +70,15 @@ const api = {
         });
 
         if (response) {
-            localStorage.setItem('vela_token', uid);
-            localStorage.setItem('vela_user', JSON.stringify(response));
+            localStorage.setItem('alma_token', uid);
+            localStorage.setItem('alma_user', JSON.stringify(response));
         }
         return response;
     },
 
     logout: () => {
-        localStorage.removeItem('vela_token');
-        localStorage.removeItem('vela_user');
+        localStorage.removeItem('alma_token');
+        localStorage.removeItem('alma_user');
         window.location.href = 'index.html';
     },
 
@@ -119,13 +119,13 @@ const api = {
     applyTheme: (isDark) => {
         // If argument provided, use it. Otherwise check localStorage. Default false.
         if (isDark === undefined) {
-            const storedUser = JSON.parse(localStorage.getItem('vela_user') || '{}');
-            // Check profile setting first, then fallback to localStorage 'vela_dark_mode'
-            isDark = storedUser.dark_mode === true || localStorage.getItem('vela_dark_mode') === 'true';
+            const storedUser = JSON.parse(localStorage.getItem('alma_user') || '{}');
+            // Check profile setting first, then fallback to localStorage 'alma_dark_mode'
+            isDark = storedUser.dark_mode === true || localStorage.getItem('alma_dark_mode') === 'true';
         }
 
         // Save to localStorage for persistence across pages even if user object isn't fully loaded
-        localStorage.setItem('vela_dark_mode', isDark);
+        localStorage.setItem('alma_dark_mode', isDark);
 
         if (isDark) {
             document.body.classList.add('dark-mode');
@@ -136,11 +136,11 @@ const api = {
 
     // Initialize Localization
     initLocalization: () => {
-        const storedUser = JSON.parse(localStorage.getItem('vela_user') || '{}');
-        const lang = storedUser.preferred_language || localStorage.getItem('vela_lang') || 'es';
+        const storedUser = JSON.parse(localStorage.getItem('alma_user') || '{}');
+        const lang = storedUser.preferred_language || localStorage.getItem('alma_lang') || 'es';
 
         // Save for persistence
-        localStorage.setItem('vela_lang', lang);
+        localStorage.setItem('alma_lang', lang);
 
         if (typeof translations === 'undefined') {
             console.warn('Translations file not loaded.');
@@ -174,8 +174,8 @@ api.login = async (email, password) => {
     const response = await originalLogin(email, password);
     if (response) {
         // Save settings to localStorage for immediate access
-        localStorage.setItem('vela_dark_mode', response.dark_mode === true);
-        localStorage.setItem('vela_lang', response.preferred_language || 'es');
+        localStorage.setItem('alma_dark_mode', response.dark_mode === true);
+        localStorage.setItem('alma_lang', response.preferred_language || 'es');
     }
     return response;
 };
@@ -187,18 +187,18 @@ api.updateProfile = async (data) => {
 
     // Update local storage and UI
     if (data.dark_mode !== undefined) {
-        localStorage.setItem('vela_dark_mode', data.dark_mode);
+        localStorage.setItem('alma_dark_mode', data.dark_mode);
         api.applyTheme(data.dark_mode);
     }
     if (data.preferred_language !== undefined) {
-        localStorage.setItem('vela_lang', data.preferred_language);
+        localStorage.setItem('alma_lang', data.preferred_language);
         api.initLocalization();
     }
 
     // Update cached user object
-    const storedUser = JSON.parse(localStorage.getItem('vela_user') || '{}');
+    const storedUser = JSON.parse(localStorage.getItem('alma_user') || '{}');
     const newUser = { ...storedUser, ...data };
-    localStorage.setItem('vela_user', JSON.stringify(newUser));
+    localStorage.setItem('alma_user', JSON.stringify(newUser));
 
     return response;
 };
