@@ -73,7 +73,19 @@ const translations = {
         "auth.email_label": "Correo Electrónico",
         "auth.password_label": "Contraseña",
         "auth.login_btn": "Entrar",
-        "auth.register_link": "¿No tienes cuenta? Regístrate"
+        "auth.register_link": "¿No tienes cuenta? Regístrate",
+
+        // Chat
+        "chat.title": "ALMA Coach",
+        "chat.welcome": "Hola, soy tu asistente virtual. ¿En qué puedo ayudarte hoy?",
+        "chat.placeholder": "Escribe tu duda...",
+        "chat.error_send": "Error al conectar con el asistente.",
+        "chat.error_init": "No se pudo iniciar el chat.",
+        "chat.error_not_ready": "Chat no inicializado.",
+        "chat.error_empty": "No recibí respuesta del asistente. Inténtalo de nuevo.",
+        "chat.feedback_useful": "Útil",
+        "chat.feedback_not_useful": "No útil",
+        "chat.feedback_thanks": "¡Gracias!"
     },
     en: {
         // Menu
@@ -149,7 +161,19 @@ const translations = {
         "auth.email_label": "Email",
         "auth.password_label": "Password",
         "auth.login_btn": "Login",
-        "auth.register_link": "No account? Register"
+        "auth.register_link": "No account? Register",
+
+        // Chat
+        "chat.title": "ALMA Coach",
+        "chat.welcome": "Hi, I am your ALMA assistant. How can I help?",
+        "chat.placeholder": "Type your question...",
+        "chat.error_send": "Error connecting to the assistant.",
+        "chat.error_init": "Could not start the chat.",
+        "chat.error_not_ready": "Chat not initialized.",
+        "chat.error_empty": "I did not receive a reply from the assistant. Please try again.",
+        "chat.feedback_useful": "Useful",
+        "chat.feedback_not_useful": "Not useful",
+        "chat.feedback_thanks": "Thanks!"
     },
     pt: {
         // Menu
@@ -225,6 +249,18 @@ const translations = {
         "auth.email_label": "Email",
         "auth.password_label": "Senha",
         "auth.login_btn": "Entrar",
-        "auth.register_link": "Não tem conta? Registre-se"
+        "auth.register_link": "Não tem conta? Registre-se",
+
+        // Chat
+        "chat.title": "ALMA Coach",
+        "chat.welcome": "Olá, sou a tua assistente ALMA. Em que posso ajudar?",
+        "chat.placeholder": "Escreve a tua dúvida...",
+        "chat.error_send": "Erro ao ligar ao assistente.",
+        "chat.error_init": "Não foi possível iniciar o chat.",
+        "chat.error_not_ready": "Chat não inicializado.",
+        "chat.error_empty": "Não recebi resposta do assistente. Tenta de novo.",
+        "chat.feedback_useful": "Útil",
+        "chat.feedback_not_useful": "Não útil",
+        "chat.feedback_thanks": "Obrigada!"
     }
 };

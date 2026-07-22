@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALMA — Chat</title>
+    <title>ALMA — Coach</title>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Outfit:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
@@ -14,6 +14,23 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
+        }
+
+        .chat-header {
+            padding: 16px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+        }
+
+        .chat-error {
+            margin: 8px 16px;
+            padding: 10px 12px;
+            background: #fde8e8;
+            color: #9b1c1c;
+            border-radius: 8px;
+            font-size: 13px;
         }
 
         .chat-container {
@@ -49,6 +66,33 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
 
+        .feedback-bar {
+            margin-top: 8px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .feedback-bar button {
+            background: transparent;
+            border: 1px solid var(--border-color, #e5e7eb);
+            border-radius: 8px;
+            padding: 2px 8px;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .feedback-bar button:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        .feedback-bar .feedback-thanks {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
         .input-area {
             position: fixed;
             bottom: 0;
@@ -69,6 +113,12 @@
             outline: none;
         }
 
+        .input-area input:disabled,
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         .send-btn {
             background: var(--primary-color);
             color: white;
@@ -85,60 +135,102 @@
 </head>
 
 <body>
-    <div class="mb-4 flex-center" style="padding: 16px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+    <div class="chat-header">
         <button class="btn-icon" onclick="window.location.href='dashboard.html'">←</button>
-        <h3 style="margin-left: 16px;">ALMA Coach</h3>
+        <h3 style="margin-left: 16px;" data-i18n="chat.title">ALMA Coach</h3>
     </div>
 
-    <div class="chat-container" id="chatContainer">
-        <div class="message ai">
-            Hola, soy tu asistente virtual de ALMA. ¿En qué puedo ayudarte hoy?
-        </div>
-    </div>
+    <div id="chatError" class="chat-error" hidden></div>
+
+    <div class="chat-container" id="chatContainer"></div>
 
     <div class="input-area">
-        <input type="text" id="messageInput" placeholder="Escribe tu duda...">
-        <button class="send-btn" onclick="sendMessage()">➤</button>
+        <input type="text" id="messageInput" data-i18n="chat.placeholder" placeholder="Escribe tu duda...">
+        <button class="send-btn" id="sendBtn" type="button" onclick="sendMessage()">➤</button>
     </div>
 
+    <script src="js/translations.js"></script>
     <script src="js/api.js"></script>
     <script>
-        let conversationId = 'new'; // In real app, get from backend
+        let conversationId = null;
+        let isSending = false;
 
-        async function initChat() {
-            try {
+        function showChatError(msg) {
+            const el = document.getElementById('chatError');
+            if (!el) return;
+            el.hidden = false;
+            el.textContent = msg;
+        }
+
+        function clearChatError() {
+            const el = document.getElementById('chatError');
+            if (!el) return;
+            el.hidden = true;
+            el.textContent = '';
+        }
+
+        function getWelcomeText() {
+            return api.t(
+                'chat.welcome',
+                'Hola, soy tu asistente ALMA. ¿En qué puedo ayudarte hoy?'
+            );
+        }
+
+        function clearMessages() {
+            document.getElementById('chatContainer').innerHTML = '';
+        }
+
+        function setSending(busy) {
+            isSending = busy;
+            const input = document.getElementById('messageInput');
+            const btn = document.getElementById('sendBtn');
+            if (input) input.disabled = busy;
+            if (btn) btn.disabled = busy;
+        }
+
+        async function ensureConversation() {
+            const saved = api.getSavedConversationId();
+            if (!saved) {
                 const res = await api.startChat();
-                conversationId = res.conversation_id;
-            } catch (error) {
-                console.error('Error starting chat:', error);
+                api.saveConversationId(res.conversation_id);
+                return res.conversation_id;
+            }
+            try {
+                await api.getChatHistory(saved);
+                return saved;
+            } catch (e) {
+                api.clearConversationId();
+                const res = await api.startChat();
+                api.saveConversationId(res.conversation_id);
+                return res.conversation_id;
             }
         }
 
-        async function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const text = input.value.trim();
-            if (!text) return;
+        function attachFeedbackBar(el, msg) {
+            if (!msg || !msg.message_id || !el) return;
 
-            // Add user message
-            addMessage(text, 'user');
-            input.value = '';
-
-            // Show loading placeholder
-            const loadingId = addMessage('...', 'ai');
-
-            try {
-                const response = await api.sendMessage(conversationId, text);
-
-                // Remove loading and add real response
-                document.getElementById(loadingId).remove();
-
-                // Simulate typing effect
-                typeMessage(response.response, 'ai');
-
-            } catch (error) {
-                console.error('Error sending message:', error);
-                document.getElementById(loadingId).textContent = 'Error al conectar con el asistente.';
-            }
+            const bar = document.createElement('div');
+            bar.className = 'feedback-bar';
+            bar.innerHTML = `
+              <button type="button" data-action="ACCEPTED" title="${api.t('chat.feedback_useful', 'Útil')}">👍</button>
+              <button type="button" data-action="REJECTED" title="${api.t('chat.feedback_not_useful', 'No útil')}">👎</button>
+            `;
+            bar.querySelectorAll('button').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    bar.querySelectorAll('button').forEach((b) => (b.disabled = true));
+                    try {
+                        await api.sendChatFeedback(msg.message_id, btn.dataset.action);
+                        bar.innerHTML =
+                            '<span class="feedback-thanks">' +
+                            api.t('chat.feedback_thanks', '¡Gracias!') +
+                            '</span>';
+                    } catch (e) {
+                        console.error(e);
+                        bar.querySelectorAll('button').forEach((b) => (b.disabled = false));
+                    }
+                });
+            });
+            el.appendChild(bar);
         }
 
         function addMessage(text, type) {
@@ -146,35 +238,123 @@
             const msg = document.createElement('div');
             msg.className = `message ${type}`;
             msg.textContent = text;
-            msg.id = 'msg-' + Date.now();
+            msg.id = 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
             container.appendChild(msg);
             container.scrollTop = container.scrollHeight;
             return msg.id;
         }
 
-        function typeMessage(text, type) {
+        function typeMessage(text, type, feedbackMsg) {
             const container = document.getElementById('chatContainer');
             const msg = document.createElement('div');
             msg.className = `message ${type}`;
             container.appendChild(msg);
 
             let i = 0;
-            const speed = 20; // ms per char
+            const speed = 20;
+            const safeText = text || '';
 
             function type() {
-                if (i < text.length) {
-                    msg.textContent += text.charAt(i);
+                if (i < safeText.length) {
+                    msg.textContent += safeText.charAt(i);
                     i++;
                     container.scrollTop = container.scrollHeight;
                     setTimeout(type, speed);
+                } else if (feedbackMsg) {
+                    attachFeedbackBar(msg, feedbackMsg);
                 }
             }
             type();
+            return msg;
+        }
+
+        function renderHistory(messages) {
+            clearMessages();
+            if (!messages || messages.length === 0) {
+                addMessage(getWelcomeText(), 'ai');
+                return;
+            }
+            messages.forEach((msg) => {
+                const type = api.isAiSender(msg) ? 'ai' : 'user';
+                const id = addMessage(api.getMessageText(msg), type);
+                if (type === 'ai') {
+                    attachFeedbackBar(document.getElementById(id), msg);
+                }
+            });
+        }
+
+        async function initChat() {
+            if (!api.requireAuth()) return;
+
+            api.initApp();
+            clearChatError();
+
+            try {
+                conversationId = await ensureConversation();
+                const raw = await api.getChatHistory(conversationId);
+                const messages = Array.isArray(raw)
+                    ? raw
+                    : (raw && (raw.messages || raw.items)) || [];
+                renderHistory(messages);
+            } catch (error) {
+                console.error(error);
+                showChatError(api.t('chat.error_init', 'No se pudo iniciar el chat.'));
+                addMessage(getWelcomeText(), 'ai');
+            }
+        }
+
+        async function sendMessage() {
+            if (isSending) return;
+            if (!conversationId) {
+                showChatError(api.t('chat.error_not_ready', 'Chat no inicializado.'));
+                return;
+            }
+
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            clearChatError();
+            setSending(true);
+
+            addMessage(text, 'user');
+            input.value = '';
+            const loadingId = addMessage('…', 'ai');
+
+            try {
+                const response = await api.sendMessage(conversationId, text);
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
+
+                const aiText = api.getMessageText(response);
+                if (!aiText) {
+                    addMessage(
+                        api.t(
+                            'chat.error_empty',
+                            'No recibí respuesta del asistente. Inténtalo de nuevo.'
+                        ),
+                        'ai'
+                    );
+                    return;
+                }
+                typeMessage(aiText, 'ai', response);
+            } catch (error) {
+                console.error(error);
+                const el = document.getElementById(loadingId);
+                const errMsg = api.t('chat.error_send', 'Error al conectar con el asistente.');
+                if (el) {
+                    el.textContent = errMsg;
+                } else {
+                    showChatError(errMsg);
+                }
+            } finally {
+                setSending(false);
+                input.focus();
+            }
         }
 
         initChat();
 
-        // Enter key support
         document.getElementById('messageInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
         });

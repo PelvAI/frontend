@@ -30,6 +30,7 @@ Temporary Items
 .env
 .env.*
 !.env.example
+js/config.js
 
 # Logs
 *.log

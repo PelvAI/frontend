@@ -1,13 +1,56 @@
-const API_URL = 'http://127.0.0.1:8001/api/v1';
+const API_URL =
+    (typeof window !== 'undefined' && window.ALMA_API_URL) ||
+    'http://127.0.0.1:8001/api/v1';
+
+const STORAGE = {
+    token: 'alma_token',
+    user: 'alma_user',
+    conversationId: 'alma_chat_conversation_id',
+    darkMode: 'alma_dark_mode',
+    lang: 'alma_lang',
+};
+
+function formatApiError(errorData, status) {
+    const d = errorData && errorData.detail;
+    if (typeof d === 'string') return d;
+    if (Array.isArray(d)) return d.map((x) => x.msg || JSON.stringify(x)).join('; ');
+    return `Error ${status}`;
+}
 
 const api = {
-    getToken: () => localStorage.getItem('alma_token'),
+    getToken: () =>
+        localStorage.getItem(STORAGE.token) || localStorage.getItem('vela_token'),
 
-    // Helper to get headers with auth token
+    getSavedConversationId: () => localStorage.getItem(STORAGE.conversationId),
+
+    saveConversationId: (id) => {
+        if (id) localStorage.setItem(STORAGE.conversationId, id);
+    },
+
+    clearConversationId: () => localStorage.removeItem(STORAGE.conversationId),
+
+    requireAuth: () => {
+        if (!api.getToken()) {
+            window.location.href = 'index.html';
+            return false;
+        }
+        return true;
+    },
+
+    getMessageText: (msg) => {
+        if (!msg) return '';
+        return msg.content_encrypted || msg.content || msg.response || '';
+    },
+
+    isAiSender: (msg) => {
+        const s = (msg && msg.sender) || '';
+        return s === 'ai' || s === 'assistant' || s === 'system';
+    },
+
     getHeaders: () => {
         const headers = {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            Accept: 'application/json',
         };
         const token = api.getToken();
         if (token) {
@@ -16,7 +59,6 @@ const api = {
         return headers;
     },
 
-    // Generic fetch wrapper
     request: async (endpoint, method = 'GET', body = null) => {
         const options = {
             method,
@@ -31,17 +73,19 @@ const api = {
             const response = await fetch(`${API_URL}${endpoint}`, options);
 
             if (response.status === 401) {
-                // Unauthorized - clear token and redirect to login
-                localStorage.removeItem('alma_token');
+                localStorage.removeItem(STORAGE.token);
+                localStorage.removeItem('vela_token');
+                api.clearConversationId();
                 window.location.href = 'index.html';
                 return null;
             }
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || `Error ${response.status}`);
+                throw new Error(formatApiError(errorData, response.status));
             }
 
+            if (response.status === 204) return null;
             return await response.json();
         } catch (error) {
             console.error('API Request Failed:', error);
@@ -49,83 +93,79 @@ const api = {
         }
     },
 
-    // Auth endpoints
     login: async (email, password) => {
-        // In this MVP, we just simulate login by getting the user by UID if it exists,
-        // or creating a new one. Since we don't have real password auth yet,
-        // we'll use the 'login' endpoint which accepts a UID.
-        // For the prototype, we'll use a hardcoded UID for "test user" if email matches,
-        // or generate one.
-
-        let uid = 'test_uid_123'; // Default test user
+        // MVP: UID mock via /auth/login (sem password real ainda)
+        let uid = 'test_uid_123';
         if (email !== 'test@alma.com') {
-            // Simple hash for other emails to get consistent UIDs
             uid = 'uid_' + btoa(email).substring(0, 10);
         }
 
         const response = await api.request('/auth/login', 'POST', {
             email: email,
             firebase_uid: uid,
-            is_active: true
+            is_active: true,
         });
 
         if (response) {
-            localStorage.setItem('alma_token', uid);
-            localStorage.setItem('alma_user', JSON.stringify(response));
+            localStorage.setItem(STORAGE.token, uid);
+            localStorage.setItem(STORAGE.user, JSON.stringify(response));
         }
         return response;
     },
 
     logout: () => {
-        localStorage.removeItem('alma_token');
-        localStorage.removeItem('alma_user');
+        localStorage.removeItem(STORAGE.token);
+        localStorage.removeItem(STORAGE.user);
+        localStorage.removeItem('vela_token');
+        api.clearConversationId();
         window.location.href = 'index.html';
     },
 
-    // Profile endpoints
     getProfile: () => api.request('/profiles/me'),
 
-    // Gamification endpoints
     getWallet: () => api.request('/gamification/wallet'),
 
-    // Training endpoints
     getDailyPlan: () => api.request('/training/daily-plan'),
     getExercises: () => api.request('/training/exercises/library'),
-    completeSession: (sessionId, feedback) => api.request(`/training/session/${sessionId}/feedback`, 'POST', feedback),
+    completeSession: (sessionId, feedback) =>
+        api.request(`/training/session/${sessionId}/feedback`, 'POST', feedback),
 
-    // Education endpoints
     getEducation: () => api.request('/education/'),
 
-    // Clinical endpoints
     getSnapshotHistory: () => api.request('/clinical/snapshots/history'),
     getForms: () => api.request('/clinical/forms'),
     getFormSchema: (code) => api.request(`/clinical/forms/${code}/schema`),
-    startSubmission: (formId) => api.request('/clinical/submissions/start', 'POST', { form_id: formId }),
-    finalizeSubmission: (subId) => api.request(`/clinical/submissions/${subId}/finalize`, 'POST'),
+    startSubmission: (formId) =>
+        api.request('/clinical/submissions/start', 'POST', { form_id: formId }),
+    finalizeSubmission: (subId) =>
+        api.request(`/clinical/submissions/${subId}/finalize`, 'POST'),
 
-    // AI Chat endpoints
+    // AI Chat endpoints — contrato Alma backend
     startChat: () => api.request('/ai/chat/new', 'POST'),
-    sendMessage: (convId, message) => api.request(`/ai/chat/${convId}/send`, 'POST', { message }),
+
+    sendMessage: (convId, content) =>
+        api.request(`/ai/chat/${convId}/send`, 'POST', { content }),
+
     getChatHistory: (convId) => api.request(`/ai/chat/${convId}/messages`),
 
-    // Gamification endpoints
+    sendChatFeedback: (messageId, userAction) =>
+        api.request(`/ai/feedback/${messageId}`, 'POST', {
+            user_action: userAction, // 'ACCEPTED' | 'REJECTED' | 'IGNORED'
+        }),
+
     getGamificationStats: () => api.request('/gamification/stats'),
     getShopCatalog: () => api.request('/gamification/shop/catalog'),
     buyItem: (itemId) => api.request(`/gamification/shop/buy/${itemId}`, 'POST'),
 
-    // --- Global Settings & Localization ---
-
-    // Apply Dark Mode
     applyTheme: (isDark) => {
-        // If argument provided, use it. Otherwise check localStorage. Default false.
         if (isDark === undefined) {
-            const storedUser = JSON.parse(localStorage.getItem('alma_user') || '{}');
-            // Check profile setting first, then fallback to localStorage 'alma_dark_mode'
-            isDark = storedUser.dark_mode === true || localStorage.getItem('alma_dark_mode') === 'true';
+            const storedUser = JSON.parse(localStorage.getItem(STORAGE.user) || '{}');
+            isDark =
+                storedUser.dark_mode === true ||
+                localStorage.getItem(STORAGE.darkMode) === 'true';
         }
 
-        // Save to localStorage for persistence across pages even if user object isn't fully loaded
-        localStorage.setItem('alma_dark_mode', isDark);
+        localStorage.setItem(STORAGE.darkMode, isDark);
 
         if (isDark) {
             document.body.classList.add('dark-mode');
@@ -134,71 +174,74 @@ const api = {
         }
     },
 
-    // Initialize Localization
-    initLocalization: () => {
-        const storedUser = JSON.parse(localStorage.getItem('alma_user') || '{}');
-        const lang = storedUser.preferred_language || localStorage.getItem('alma_lang') || 'es';
+    t: (key, fallback = '') => {
+        if (typeof translations === 'undefined') return fallback || key;
+        const lang = localStorage.getItem(STORAGE.lang) || 'es';
+        const dict = translations[lang] || translations.es || {};
+        return dict[key] || (translations.es && translations.es[key]) || fallback || key;
+    },
 
-        // Save for persistence
-        localStorage.setItem('alma_lang', lang);
+    initLocalization: () => {
+        const storedUser = JSON.parse(localStorage.getItem(STORAGE.user) || '{}');
+        const lang =
+            storedUser.preferred_language || localStorage.getItem(STORAGE.lang) || 'es';
+
+        localStorage.setItem(STORAGE.lang, lang);
 
         if (typeof translations === 'undefined') {
             console.warn('Translations file not loaded.');
             return;
         }
 
-        const t = translations[lang] || translations['es'];
+        const t = translations[lang] || translations.es;
 
-        document.querySelectorAll('[data-i18n]').forEach(el => {
+        document.querySelectorAll('[data-i18n]').forEach((el) => {
             const key = el.getAttribute('data-i18n');
-            if (t[key]) {
-                if (el.tagName === 'INPUT' && el.getAttribute('placeholder')) {
-                    el.placeholder = t[key];
-                } else {
-                    el.textContent = t[key];
-                }
+            if (!t[key]) return;
+            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                el.placeholder = t[key];
+            } else {
+                el.textContent = t[key];
             }
+        });
+
+        document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+            const key = el.getAttribute('data-i18n-title');
+            if (t[key]) el.setAttribute('title', t[key]);
         });
     },
 
-    // Initialize App (Call this on every page load)
     initApp: () => {
         api.applyTheme();
         api.initLocalization();
-    }
+    },
 };
 
-// Hook into login to save settings
 const originalLogin = api.login;
 api.login = async (email, password) => {
     const response = await originalLogin(email, password);
     if (response) {
-        // Save settings to localStorage for immediate access
-        localStorage.setItem('alma_dark_mode', response.dark_mode === true);
-        localStorage.setItem('alma_lang', response.preferred_language || 'es');
+        localStorage.setItem(STORAGE.darkMode, response.dark_mode === true);
+        localStorage.setItem(STORAGE.lang, response.preferred_language || 'es');
     }
     return response;
 };
 
-// Hook into updateProfile to update settings
-const originalUpdateProfile = api.updateProfile;
 api.updateProfile = async (data) => {
     const response = await api.request('/profiles/me', 'PATCH', data);
 
-    // Update local storage and UI
     if (data.dark_mode !== undefined) {
-        localStorage.setItem('alma_dark_mode', data.dark_mode);
+        localStorage.setItem(STORAGE.darkMode, data.dark_mode);
         api.applyTheme(data.dark_mode);
     }
     if (data.preferred_language !== undefined) {
-        localStorage.setItem('alma_lang', data.preferred_language);
+        localStorage.setItem(STORAGE.lang, data.preferred_language);
         api.initLocalization();
     }
 
-    // Update cached user object
-    const storedUser = JSON.parse(localStorage.getItem('alma_user') || '{}');
+    const storedUser = JSON.parse(localStorage.getItem(STORAGE.user) || '{}');
     const newUser = { ...storedUser, ...data };
-    localStorage.setItem('alma_user', JSON.stringify(newUser));
+    localStorage.setItem(STORAGE.user, JSON.stringify(newUser));
 
     return response;
 };

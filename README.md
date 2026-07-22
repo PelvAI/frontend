@@ -10,19 +10,21 @@ Aplicación web para pacientes de **ALMA Care** (módulo B2C de **ALMA Health In
 ## 🚀 Inicio Rápido
 
 1. **Configuración de API**:
-   Asegúrate de que el Backend esté corriendo en `http://localhost:8001`. Puedes verificar la URL en `js/api.js`.
+   O backend Alma deve correr em `http://127.0.0.1:8001`. Por omissão `js/api.js` aponta para `/api/v1`.
+   Em produção: `cp js/config.example.js js/config.js` e carrega `config.js` antes de `api.js`.
+   Detalhe do contrato (chat, portas): [`config.example.md`](./config.example.md).
 
 2. **Servidor Local**:
-   Al ser una aplicación estática, puedes abrir el archivo `index.html` directamente en tu navegador o usar un servidor local sencillo:
    ```bash
-   # Si tienes Python instalado:
-   python3 -m http.server 3000
+   python3 -m http.server 8080
    ```
 
 3. **Acceso**:
-   Usa las credenciales de prueba configuradas en el backend:
-   - **Email**: `ana@alma.com`
-   - **Password**: (Cualquiera en modo dev/prototipo)
+   - **Email**: `test@alma.com` ou `ana@alma.com` (seed do backend)
+   - **Password**: qualquer (modo dev / UID mock)
+
+4. **Chat**:
+   A app **nunca** chama o chatbot (`:8000`) — só o backend. Body de envio: `{ "content": "..." }`; texto AI: `content_encrypted`.
 
 ---
 
