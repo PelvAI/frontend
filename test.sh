@@ -6,6 +6,6 @@
 # Existen porque un ReferenceError en el renderizador dejó la pantalla de
 # evaluación completamente muerta durante meses sin que nada lo señalara.
 set -e
-for prueba in js/conditions.test.js js/render.test.js; do
+for prueba in js/conditions.test.js js/render.test.js js/evaluations.test.js; do
     node "$prueba"
 done

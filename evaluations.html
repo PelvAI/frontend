@@ -8,6 +8,29 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Outfit:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .estado {
+            display: inline-block;
+            margin-top: 8px;
+            margin-right: 6px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .estado-pendiente { background: #e6f0ef; color: #0f5f58; }
+        .estado-hecho     { background: #eef0ef; color: #6b7a78; }
+        .estado-espera    { background: #f7efdc; color: #8a6210; }
+        .estado-bloqueante{ background: #f8e9e7; color: #9c2a24; }
+
+        .card[aria-disabled="true"] {
+            opacity: 0.7;
+            cursor: default;
+        }
+
+        .card.bloqueante { border: 1px solid #9c2a24; }
+    </style>
 </head>
 
 <body>
@@ -29,6 +52,24 @@
 
     <script src="js/api.js"></script>
     <script>
+        // "el 3 de octubre" / "hoy" / "mañana", sin librerías.
+        function cuando(iso) {
+            if (!iso) return 'más adelante';
+            const fecha = new Date(iso);
+            if (isNaN(fecha)) return 'más adelante';
+
+            // Se comparan días de calendario, no milisegundos transcurridos:
+            // algo dentro de veinticinco horas es mañana, no "en dos días".
+            const aMedianoche = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            const dias = Math.round(
+                (aMedianoche(fecha) - aMedianoche(new Date())) / 86400000
+            );
+            if (dias <= 0) return 'hoy';
+            if (dias === 1) return 'mañana';
+            if (dias < 7) return 'en ' + dias + ' días';
+            return 'el ' + fecha.toLocaleDateString('es', { day: 'numeric', month: 'long' });
+        }
+
         async function loadForms() {
             try {
                 const forms = await api.getForms();
@@ -53,11 +94,27 @@
                     let desc = t[form.description_key] || form.description_key || 'Evaluación clínica del sistema.';
                     let icon = '📋';
 
+                    // El backend dice de cada cuestionario si le toca hoy. Antes
+                    // la lista los pintaba todos iguales, sin distinguir lo
+                    // pendiente de lo ya respondido (F25).
+                    const estado = form.availability || 'disponible';
+                    const puedeResponder = estado === 'disponible';
+                    const etiquetas = {
+                        disponible: { texto: 'Pendiente', clase: 'estado-pendiente' },
+                        completado: { texto: 'Completada', clase: 'estado-hecho' },
+                        en_espera: { texto: 'Próxima ' + cuando(form.next_available_at), clase: 'estado-espera' },
+                        proximamente: { texto: 'Disponible ' + cuando(form.next_available_at), clase: 'estado-espera' }
+                    };
+                    const etiqueta = etiquetas[estado] || etiquetas.disponible;
+
                     // Only keep icons for very specific known codes, otherwise use default
                     if (form.code.includes('onboarding')) icon = '🏁';
                     else if (form.code.includes('pfdi')) icon = '🩺';
                     else if (form.code.includes('wellness')) icon = '🧘‍♀️';
                     else if (form.code.includes('iciq')) icon = '💧';
+
+                    if (form.is_blocking) card.classList.add('bloqueante');
+                    if (!puedeResponder) card.classList.remove('clickable');
 
                     card.innerHTML = `
                         <div class="flex-center" style="justify-content: flex-start; gap: 16px;">
@@ -65,11 +122,17 @@
                             <div style="flex: 1;">
                                 <h3 style="margin: 0;">${title}</h3>
                                 <p class="text-small" style="margin-top: 4px;">${desc}</p>
-                                <div class="label" style="display: inline-block; margin-top: 8px; font-size: 10px;">CODE: ${form.code}</div>
+                                <span class="estado ${etiqueta.clase}">${etiqueta.texto}</span>
+                                ${form.is_blocking ? '<span class="estado estado-bloqueante">Empezá por acá</span>' : ''}
                             </div>
                         </div>
                     `;
-                    card.onclick = () => window.location.href = `assessment.html?code=${form.code}`;
+
+                    if (puedeResponder) {
+                        card.onclick = () => window.location.href = `assessment.html?code=${form.code}`;
+                    } else {
+                        card.setAttribute('aria-disabled', 'true');
+                    }
                     container.appendChild(card);
                 });
 
