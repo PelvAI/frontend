@@ -44,6 +44,60 @@
             width: 100%;
             accent-color: var(--primary-color);
         }
+
+        .range-marks {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-top: 8px;
+        }
+
+        .question-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .required-mark { color: var(--primary-color); }
+
+        .question-help {
+            display: block;
+            color: #667085;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: white;
+            font: inherit;
+        }
+
+        .option-check,
+        .ranking-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+        }
+
+        .option-check input { accent-color: var(--primary-color); }
+
+        .ranking-pos {
+            width: 64px;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: white;
+            font: inherit;
+        }
+
+        .question-info { background: #f4f7f6; }
+
+        .question-card[hidden] { display: none; }
     </style>
 </head>
 
@@ -65,6 +119,7 @@
         </div>
     </div>
 
+    <script src="js/conditions.js"></script>
     <script src="js/api.js"></script>
     <script>
         let currentFormId = null;
@@ -89,11 +144,13 @@
                     return;
                 }
 
-                // Start submission
+                // Dibujar primero: si el render falla, no queremos haber dejado
+                // una evaluación abierta que nadie va a responder.
+                renderForm(form);
+
                 const sub = await api.startSubmission(form.form_id);
                 currentSubmissionId = sub.submission_id;
 
-                renderForm(form);
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('formContainer').style.display = 'block';
 
@@ -103,35 +160,58 @@
             }
         }
 
-        // --- Renderer Registry Pattern ---
+        // --- Traducciones -------------------------------------------------
+        // El modelo entero está diseñado sobre claves de traducción y la tabla
+        // existe, pero nadie la consultaba: la app pintaba la clave cruda
+        // (F24). Mientras el backend no exponga las traducciones resueltas, se
+        // usa el diccionario local y se cae al texto de la clave, que hoy suele
+        // ser la frase en español.
+        function t(clave) {
+            if (!clave) return '';
+            const lang = localStorage.getItem('alma_lang') || 'es';
+            const dicc = (window.translations && window.translations[lang]) || {};
+            return dicc[clave] || clave;
+        }
+
+        // --- Registro de renderizadores ------------------------------------
         const renderers = {
             'single': renderSingleChoice,
-            'multi': renderMultiChoice, // Future use
+            'multi': renderMultiChoice,
+            'dropdown': renderDropdown,
             'scale': renderScale,
-            'text': renderText,         // Future use
-            'info': renderInfo          // Future use
+            'ranking': renderRanking,
+            'date': renderDate,
+            'text': renderText,
+            'paragraph': renderParagraph,
+            'info': renderInfo
         };
+
+        // Preguntas montadas, para poder recalcular qué se muestra sin volver a
+        // dibujar: rehacer el DOM en cada respuesta perdería el foco y el
+        // scroll mientras la mujer escribe.
+        const montadas = [];
 
         function renderForm(form) {
             const container = document.getElementById('questionsList');
             container.innerHTML = '';
+            montadas.length = 0;
 
-            // Handle Sections
-            if (form.sections && form.sections.length > 0) {
-                form.sections.forEach(section => {
-                    // Logic to detect if section has title (some might be implicit)
-                    renderSectionTitle(container, section);
-                    section.questions.forEach(q => renderQuestion(container, q));
-                });
-            } else {
-                // Fallback for flat forms (though our schema has sections)
+            if (!form.sections || form.sections.length === 0) {
                 container.innerHTML = '<p>Formulario sin secciones definidas.</p>';
+                return;
             }
+
+            form.sections.forEach(section => {
+                renderSectionTitle(container, section);
+                section.questions.forEach(q => renderQuestion(container, q));
+            });
+
+            actualizarVisibilidad();
         }
 
         function renderSectionTitle(container, section) {
             const title = document.createElement('h3');
-            title.textContent = section.title_key || 'Sección';
+            title.textContent = t(section.title_key) || 'Sección';
             title.className = 'mb-4 mt-4';
             container.appendChild(title);
         }
@@ -140,36 +220,41 @@
             const card = document.createElement('div');
             card.className = 'question-card';
 
-            // 1. Label
-            // Use translations if available, otherwise fallback to key
-            const lang = localStorage.getItem('alma_lang') || 'es';
-            const t = (window.translations && translations[lang]) || {};
-            label.textContent = t[q.text_key] || q.text_key || q.variable_name || 'Pregunta';
-            // Note: In real app, resolved text should be fetched from translations based on text_key
-
-            // If we have "ui_hint", show it
-            if (q.ui_hint) {
-                const hint = document.createElement('small');
-                hint.className = 'd-block text-muted mb-2';
-                hint.textContent = q.ui_hint;
-                card.appendChild(hint);
+            const label = document.createElement('label');
+            label.className = 'question-label';
+            label.textContent = t(q.text_key) || q.variable_name || 'Pregunta';
+            if (q.is_required) {
+                const marca = document.createElement('span');
+                marca.className = 'required-mark';
+                marca.textContent = ' *';
+                marca.setAttribute('aria-label', 'obligatoria');
+                label.appendChild(marca);
             }
-
             card.appendChild(label);
 
-            // 2. Dispatch to Renderer
+            if (q.help_text) {
+                const ayuda = document.createElement('small');
+                ayuda.className = 'question-help';
+                ayuda.textContent = q.help_text;
+                card.appendChild(ayuda);
+            }
+
             const renderer = renderers[q.type];
             if (renderer) {
                 renderer(card, q);
             } else {
-                console.warn(`Unsupported question type: ${q.type}`);
-                card.innerHTML += `<p class="text-error">Tipo de pregunta no soportado: ${q.type}</p>`;
+                console.warn('Tipo de pregunta no soportado: ' + q.type);
+                const aviso = document.createElement('p');
+                aviso.className = 'question-help';
+                aviso.textContent = 'Esta pregunta no se puede mostrar en esta versión.';
+                card.appendChild(aviso);
             }
 
             container.appendChild(card);
+            montadas.push({ card: card, q: q });
         }
 
-        // --- Specific Renderers ---
+        // --- Renderizadores por tipo ---------------------------------------
 
         function renderSingleChoice(container, q) {
             if (!q.options || q.options.length === 0) {
@@ -179,65 +264,223 @@
 
             q.options.forEach(opt => {
                 const btn = document.createElement('button');
+                btn.type = 'button';
                 btn.className = 'option-btn';
-                // Display: Label Key or Value
-                btn.textContent = opt.label_key || opt.value;
-                // Store value for logic
+                btn.textContent = t(opt.label_key) || opt.value;
                 btn.dataset.value = opt.value;
-                btn.dataset.questionId = q.question_id;
+                btn.setAttribute('aria-pressed', 'false');
 
-                btn.onclick = () => selectOption(btn, q.question_id, opt.value);
+                btn.onclick = () => {
+                    container.querySelectorAll('.option-btn').forEach(b => {
+                        b.classList.remove('selected');
+                        b.setAttribute('aria-pressed', 'false');
+                    });
+                    btn.classList.add('selected');
+                    btn.setAttribute('aria-pressed', 'true');
+                    saveAnswer(q, opt.value);
+                };
                 container.appendChild(btn);
             });
         }
 
         function renderMultiChoice(container, q) {
-            container.innerHTML += '<p>Multi-choice not implemented yet.</p>';
+            if (!q.options || q.options.length === 0) {
+                container.innerHTML += '<p>No hay opciones definidas.</p>';
+                return;
+            }
+
+            const elegidas = [];
+            q.options.forEach(opt => {
+                const fila = document.createElement('label');
+                fila.className = 'option-check';
+
+                const box = document.createElement('input');
+                box.type = 'checkbox';
+                box.value = opt.value;
+                box.onchange = () => {
+                    const i = elegidas.indexOf(opt.value);
+                    if (box.checked && i === -1) elegidas.push(opt.value);
+                    if (!box.checked && i !== -1) elegidas.splice(i, 1);
+                    saveAnswer(q, elegidas.slice());
+                };
+
+                const texto = document.createElement('span');
+                texto.textContent = t(opt.label_key) || opt.value;
+
+                fila.appendChild(box);
+                fila.appendChild(texto);
+                container.appendChild(fila);
+            });
+        }
+
+        function renderDropdown(container, q) {
+            const select = document.createElement('select');
+            select.className = 'form-control';
+
+            const vacia = document.createElement('option');
+            vacia.value = '';
+            vacia.textContent = 'Elegí una opción';
+            select.appendChild(vacia);
+
+            (q.options || []).forEach(opt => {
+                const o = document.createElement('option');
+                o.value = opt.value;
+                o.textContent = t(opt.label_key) || opt.value;
+                select.appendChild(o);
+            });
+
+            select.onchange = () => saveAnswer(q, select.value);
+            container.appendChild(select);
         }
 
         function renderScale(container, q) {
-            // Config usually in q.config for min/max
-            const min = q.config?.min || 0;
-            const max = q.config?.max || 10;
-            const step = q.config?.step || 1;
+            const min = (q.config && q.config.min) != null ? q.config.min : 0;
+            const max = (q.config && q.config.max) != null ? q.config.max : 10;
+            const step = (q.config && q.config.step) || 1;
 
-            const range = document.createElement('div');
-            range.className = 'range-container';
-            range.innerHTML = `
-                <input type="range" min="${min}" max="${max}" step="${step}" value="${Math.floor((max + min) / 2)}" 
-                    onchange="saveAnswer('${q.question_id}', this.value)">
-                <div class="flex-center" style="justify-content: space-between; margin-top: 8px;">
-                    <span class="text-small">${min}</span>
-                    <span class="text-small">${max}</span>
-                </div>
-            `;
-            container.appendChild(range);
+            const caja = document.createElement('div');
+            caja.className = 'range-container';
+
+            const input = document.createElement('input');
+            input.type = 'range';
+            input.min = min;
+            input.max = max;
+            input.step = step;
+            input.value = Math.floor((max + min) / 2);
+
+            const marcas = document.createElement('div');
+            marcas.className = 'range-marks';
+            const izq = document.createElement('span');
+            izq.className = 'text-small';
+            izq.textContent = min;
+            const actual = document.createElement('strong');
+            actual.textContent = input.value;
+            const der = document.createElement('span');
+            der.className = 'text-small';
+            der.textContent = max;
+            marcas.appendChild(izq);
+            marcas.appendChild(actual);
+            marcas.appendChild(der);
+
+            input.oninput = () => { actual.textContent = input.value; };
+            input.onchange = () => saveAnswer(q, input.value);
+
+            caja.appendChild(input);
+            caja.appendChild(marcas);
+            container.appendChild(caja);
+        }
+
+        function renderRanking(container, q) {
+            // Ordenar por preferencia: cada opción lleva su posición. Se resuelve
+            // con selects para que funcione con lector de pantalla y sin gestos
+            // de arrastre, que en un teléfono son poco fiables.
+            const total = (q.options || []).length;
+            const posiciones = {};
+
+            (q.options || []).forEach(opt => {
+                const fila = document.createElement('div');
+                fila.className = 'ranking-row';
+
+                const select = document.createElement('select');
+                select.className = 'ranking-pos';
+                select.setAttribute('aria-label', 'Posición de ' + (t(opt.label_key) || opt.value));
+
+                const vacia = document.createElement('option');
+                vacia.value = '';
+                vacia.textContent = '–';
+                select.appendChild(vacia);
+                for (let i = 1; i <= total; i++) {
+                    const o = document.createElement('option');
+                    o.value = String(i);
+                    o.textContent = String(i);
+                    select.appendChild(o);
+                }
+
+                select.onchange = () => {
+                    if (select.value) posiciones[opt.value] = parseInt(select.value, 10);
+                    else delete posiciones[opt.value];
+
+                    const orden = Object.keys(posiciones)
+                        .sort((a, b) => posiciones[a] - posiciones[b]);
+                    saveAnswer(q, orden);
+                };
+
+                const texto = document.createElement('span');
+                texto.textContent = t(opt.label_key) || opt.value;
+
+                fila.appendChild(select);
+                fila.appendChild(texto);
+                container.appendChild(fila);
+            });
+        }
+
+        function renderDate(container, q) {
+            const input = document.createElement('input');
+            input.type = 'date';
+            input.className = 'form-control';
+            input.onchange = () => saveAnswer(q, input.value);
+            container.appendChild(input);
         }
 
         function renderText(container, q) {
-            // Simple text input
-            container.innerHTML += '<p>Text input not implemented in demo.</p>';
+            const input = document.createElement('input');
+            input.type = (q.ui_hint === 'numeric_keyboard') ? 'number' : 'text';
+            input.className = 'form-control';
+            if (q.placeholder) input.placeholder = q.placeholder;
+            input.oninput = () => saveAnswer(q, input.value);
+            container.appendChild(input);
+        }
+
+        function renderParagraph(container, q) {
+            const area = document.createElement('textarea');
+            area.className = 'form-control';
+            area.rows = 4;
+            if (q.placeholder) area.placeholder = q.placeholder;
+            area.oninput = () => saveAnswer(q, area.value);
+            container.appendChild(area);
         }
 
         function renderInfo(container, q) {
-            // Just info, no input
+            // Sólo texto informativo: la etiqueta ya se dibujó y no hay nada que
+            // responder.
+            container.classList.add('question-info');
         }
 
-        // --- Interaction Logic ---
+        // --- Lógica condicional --------------------------------------------
 
-        function selectOption(btn, questionId, value) {
-            // Visual selection state
-            const parent = btn.parentNode;
-            parent.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-
-            saveAnswer(questionId, value);
+        function contextoCondiciones() {
+            // Las condiciones se escriben sobre data_key, igual que las fórmulas
+            // de puntuación, para que signifiquen lo mismo de los dos lados.
+            const ctx = {};
+            montadas.forEach(({ q }) => {
+                if (q.data_key && answers[q.question_id] !== undefined) {
+                    ctx[q.data_key] = answers[q.question_id];
+                }
+            });
+            return ctx;
         }
 
-        function saveAnswer(questionId, value) {
-            // Keep local state
-            answers[questionId] = value;
-            console.log(`Answer saved locally: ${questionId} = ${value}`);
+        function actualizarVisibilidad() {
+            const ctx = contextoCondiciones();
+            montadas.forEach(({ card, q }) => {
+                const visible = window.Condiciones
+                    ? Condiciones.debeMostrarse(q.show_if, ctx)
+                    : true;
+                card.hidden = !visible;
+            });
+        }
+
+        function estaVisible(questionId) {
+            const m = montadas.find(x => x.q.question_id === questionId);
+            return m ? !m.card.hidden : true;
+        }
+
+        // --- Interacción ----------------------------------------------------
+
+        function saveAnswer(q, value) {
+            const id = q.question_id !== undefined ? q.question_id : q;
+            answers[id] = value;
+            actualizarVisibilidad();
         }
 
         // --- Submission Logic ---
@@ -245,14 +488,24 @@
         async function submitForm() {
             if (!currentSubmissionId) return;
 
-            // 1. Format Payload for API
-            // API expects { "answers": [ { "question_id": "...", "value": "..." } ] }
+            // Sólo viaja lo que está a la vista. Si alguien contestó una
+            // pregunta y después cambió la disparadora que la ocultaba, esa
+            // respuesta ya no corresponde y no debe puntuar.
             const payload = {
-                answers: Object.entries(answers).map(([qid, val]) => ({
-                    question_id: qid,
-                    value: val
-                }))
+                answers: Object.entries(answers)
+                    .filter(([qid]) => estaVisible(qid))
+                    .map(([qid, val]) => ({ question_id: qid, value: val }))
             };
+
+            const faltan = montadas.filter(({ card, q }) =>
+                !card.hidden && q.is_required && answers[q.question_id] === undefined
+            );
+            if (faltan.length > 0) {
+                alert('Faltan respuestas obligatorias: ' +
+                      faltan.map(({ q }) => t(q.text_key) || q.variable_name).join(', '));
+                faltan[0].card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
 
             if (payload.answers.length === 0) {
                 alert("Por favor contesta al menos una pregunta.");
