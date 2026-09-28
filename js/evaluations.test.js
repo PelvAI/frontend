@@ -28,13 +28,20 @@ vm.createContext(sandbox);
 vm.runInContext(scripts.join("\n"), sandbox);
 const leer = (expr) => vm.runInContext(expr, sandbox);
 
-const dia = 86400000;
-const enDias = (n) => new Date(Date.now() + n * dia + 3600000).toISOString();
+// Se construye la fecha por aritmética de calendario y a mediodía, no sumando
+// milisegundos: sumar veinticinco horas cerca de la medianoche cruza un día de
+// calendario extra, y la prueba pasaba o fallaba según la hora a la que se
+// corriera. Una prueba intermitente es peor que ninguna.
+const enDias = (n) => {
+  const hoy = new Date();
+  return new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + n, 12, 0, 0).toISOString();
+};
 
 const casos = [
   ["sin fecha", "cuando(null)", "más adelante"],
   ["fecha inválida", "cuando('no es una fecha')", "más adelante"],
   ["ya pasó", `cuando('${enDias(-5)}')`, "hoy"],
+  ["hoy mismo", `cuando('${enDias(0)}')`, "hoy"],
   ["mañana", `cuando('${enDias(1)}')`, "mañana"],
   ["esta semana", `cuando('${enDias(3)}')`, "en 3 días"],
 ];
