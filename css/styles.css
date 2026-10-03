@@ -1,5 +1,5 @@
 :root {
-    /* VELA - Brand Palette */
+    /* ALMA - Brand Palette */
     --midnight: #0D1A3E;
     --midnight-2: #162050;
     --ivory: #F5EFE6;
@@ -18,6 +18,13 @@
     --silver: #8A95A3;
     --fog: #D5D9E2;
 
+    /* Danger es un rojo propio, deliberadamente distinto de Rose: el manual
+       reserva Rose para "salud, vitalidad", no para alarma. Mismo tono que
+       admin-panel (#A23B32, 6.3:1 de contraste sobre Snow) para que las dos
+       apps hablen el mismo idioma de marca. */
+    --danger: #A23B32;
+    --danger-light: #C96F67;
+
     /* Theme Mappings */
     --primary-color: var(--midnight);
     --secondary-color: var(--ivory);
@@ -25,11 +32,12 @@
     --text-color: var(--charcoal);
     --text-light: var(--slate);
     --bg-color: var(--snow);
-    --card-bg: var(--ivory);
+    --card-bg: #ffffff;
     --border-color: var(--fog);
     --success-color: var(--sage);
     --warning-color: var(--gold);
-    --error-color: var(--rose);
+    --error-color: var(--danger);
+    --info-color: var(--midnight);
 
     /* Fonts */
     --serif: 'Cormorant Garamond', Georgia, serif;
@@ -143,7 +151,7 @@ h3, .t-title {
 
 /* ── COMPONENTS ────────────────────────────────────── */
 .card {
-    background: var(--ivory);
+    background: var(--card-bg);
     border-radius: 20px;
     border: 1px solid var(--fog);
     padding: 24px;
@@ -188,7 +196,7 @@ input[type="number"]:focus,
 input[type="date"]:focus,
 select:focus {
     border-color: var(--primary-color);
-    background: #ffffff;
+    background: var(--card-bg);
     box-shadow: 0 0 0 3px rgba(13, 26, 62, 0.08);
 }
 
@@ -203,7 +211,7 @@ input::placeholder {
 
 .card:active {
     transform: scale(0.98);
-    background: #EDE8DF;
+    background: var(--snow);
 }
 
 .ghost-text {
@@ -248,6 +256,41 @@ input::placeholder {
 
 .btn-primary:hover {
     background: var(--midnight-2);
+}
+
+/* Se usaba en 7 páginas (incluido el login) sin estar definida en
+   ningún lado: el botón salía sin color de fondo ni de texto. */
+.btn-secondary {
+    background: transparent;
+    color: var(--midnight);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: rgba(13, 26, 62, 0.04);
+    border-color: var(--midnight);
+}
+
+/* Botón circular de ícono — hoy siempre es la flecha "atrás" de las
+   barras superiores, usado suelto (sin .btn). Mismo bug que btn-secondary. */
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-color);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-icon:hover {
+    background: var(--snow);
+    border-color: var(--midnight);
 }
 
 /* ── NAVIGATION ───────────────────────────────────── */

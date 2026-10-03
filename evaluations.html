@@ -7,6 +7,8 @@
     <title>ALMA — Evaluaciones</title>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Outfit:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap"
         rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="alternate icon" href="assets/favicon.ico">
     <link rel="stylesheet" href="css/styles.css">
     <style>
         .estado {
@@ -19,17 +21,17 @@
             font-weight: 600;
         }
 
-        .estado-pendiente { background: #e6f0ef; color: #0f5f58; }
-        .estado-hecho     { background: #eef0ef; color: #6b7a78; }
-        .estado-espera    { background: #f7efdc; color: #8a6210; }
-        .estado-bloqueante{ background: #f8e9e7; color: #9c2a24; }
+        .estado-pendiente { background: rgba(61, 158, 138, 0.14); color: var(--sage-dark); }
+        .estado-hecho     { background: rgba(74, 85, 112, 0.1); color: var(--slate); }
+        .estado-espera    { background: rgba(201, 145, 58, 0.16); color: var(--gold-dark); }
+        .estado-bloqueante{ background: rgba(162, 59, 50, 0.12); color: var(--error-color); }
 
         .card[aria-disabled="true"] {
             opacity: 0.7;
             cursor: default;
         }
 
-        .card.bloqueante { border: 1px solid #9c2a24; }
+        .card.bloqueante { border: 1px solid var(--error-color); }
     </style>
 </head>
 

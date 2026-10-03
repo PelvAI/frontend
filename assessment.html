@@ -7,14 +7,16 @@
     <title>ALMA — Evaluación</title>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Outfit:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap"
         rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="alternate icon" href="assets/favicon.ico">
     <link rel="stylesheet" href="css/styles.css">
     <style>
         .question-card {
-            background: white;
+            background: var(--card-bg);
             padding: 20px;
             border-radius: 16px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 12px rgba(13, 26, 62, 0.06);
         }
 
         .option-btn {
@@ -24,7 +26,7 @@
             margin-bottom: 8px;
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            background: white;
+            background: var(--card-bg);
             text-align: left;
             cursor: pointer;
             transition: all 0.2s;
@@ -62,7 +64,7 @@
 
         .question-help {
             display: block;
-            color: #667085;
+            color: var(--slate);
             font-size: 0.85rem;
             margin-bottom: 10px;
         }
@@ -72,7 +74,7 @@
             padding: 12px;
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            background: white;
+            background: var(--card-bg);
             font: inherit;
         }
 
@@ -91,11 +93,11 @@
             padding: 8px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            background: white;
+            background: var(--card-bg);
             font: inherit;
         }
 
-        .question-info { background: #f4f7f6; }
+        .question-info { background: rgba(13, 26, 62, 0.04); }
 
         .question-card[hidden] { display: none; }
     </style>

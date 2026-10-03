@@ -7,6 +7,8 @@
     <title>ALMA — Progreso</title>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Outfit:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap"
         rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="alternate icon" href="assets/favicon.ico">
     <link rel="stylesheet" href="css/styles.css">
     <style>
         .chart-container {
@@ -34,11 +36,11 @@
         }
 
         .bar-wellness {
-            background: linear-gradient(180deg, #D8E2DC 0%, #FFE5D9 100%);
+            background: linear-gradient(180deg, var(--sage-light) 0%, var(--sage) 100%);
         }
 
         .bar-symptoms {
-            background: linear-gradient(180deg, #F4ACB7 0%, #FFE5D9 100%);
+            background: linear-gradient(180deg, var(--rose-light) 0%, var(--rose) 100%);
         }
     </style>
 </head>
@@ -55,7 +57,7 @@
                 height: 150px; 
                 margin: 0 auto 16px;
                 border-radius: 50%;
-                background: linear-gradient(135deg, #F4ACB7 0%, #FFE5D9 100%);
+                background: linear-gradient(135deg, var(--sage-light) 0%, var(--sage) 100%);
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -128,15 +130,15 @@
                 // Update Achievements Grid
                 const achievementsGrid = document.querySelector('.flex-grid');
                 achievementsGrid.innerHTML = `
-                    <div style="padding: 12px; background: #FFEAEE; border-radius: 12px; text-align: center;">
+                    <div style="padding: 12px; background: rgba(201, 145, 58, 0.14); border-radius: 12px; text-align: center;">
                         <div style="font-size: 32px;">🏅</div>
                         <p class="text-small">Semana ${stats.program_week}</p>
                     </div>
-                    <div style="padding: 12px; background: #FFEAEE; border-radius: 12px; text-align: center;">
+                    <div style="padding: 12px; background: rgba(201, 145, 58, 0.14); border-radius: 12px; text-align: center;">
                         <div style="font-size: 32px;">🔥</div>
                         <p class="text-small">Racha ${stats.streak}</p>
                     </div>
-                    <div style="padding: 12px; background: #FFEAEE; border-radius: 12px; text-align: center;">
+                    <div style="padding: 12px; background: rgba(201, 145, 58, 0.14); border-radius: 12px; text-align: center;">
                         <div style="font-size: 32px;">⭐</div>
                         <p class="text-small">Nivel ${stats.level}</p>
                     </div>
